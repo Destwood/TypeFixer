@@ -39,7 +39,11 @@ function getWordBeforeCursor() {
     const cursorPosition = activeElement.selectionStart;
     const text = activeElement.value || activeElement.textContent;
     const words = text.substring(0, cursorPosition).trim().split(/\s+/);
-    console.log(activeElement, cursorPosition);
+
+    cursorDiv.style.top =
+      getCaretCoordinates(activeElement, cursorPosition).y - 60 + "px";
+    cursorDiv.style.left =
+      getCaretCoordinates(activeElement, cursorPosition).x - 70 + "px";
     return words[words.length - 1];
   } else if (isContenteditable) {
     const selection = window.getSelection();
@@ -65,6 +69,10 @@ function getWordUnderCursor() {
   if (isInputOrTextarea) {
     const cursorPosition = activeElement.selectionStart;
     const text = activeElement.value || activeElement.textContent;
+    cursorDiv.style.top =
+      getCaretCoordinates(activeElement, cursorPosition).y - 60 + "px";
+    cursorDiv.style.left =
+      getCaretCoordinates(activeElement, cursorPosition).x - 70 + "px";
     const words = text.split(/\s+/).filter((word) => word !== "");
     let wordStart = 0;
     let wordEnd = 0;
@@ -84,6 +92,9 @@ function getWordUnderCursor() {
   } else if (isContenteditable) {
     const selection = window.getSelection();
     const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    cursorDiv.style.top = rect.y - 35 + "px";
+    cursorDiv.style.left = rect.x - 70 + "px";
     const cursorOffset = range.startOffset;
     const cursorNode = range.startContainer;
     const cursorParentNode = cursorNode.parentNode;

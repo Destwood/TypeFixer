@@ -1,0 +1,23 @@
+.Existek {
+  background-color: rgb(93, 222, 145);
+  border-radius: 4px;
+  color: #fff;
+  width: fit-content;
+  height: fit-content;
+  padding: 2px 8px;
+  position: absolute;
+  z-index: 10000;
+  top: 20px;
+  left: 20px;
+}
+
+.optionButton {
+  margin-right: 10px;
+}
+
+.settings {
+  all: unset;
+  display: inline-block;
+  width: 20px;
+  height: 25px;
+}

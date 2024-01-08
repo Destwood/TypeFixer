@@ -11,6 +11,25 @@ const dictionary = {
 let currentWord = "";
 let isMenuActive = false;
 const cursorDiv = document.createElement("div");
+function getCaretCoordinates(inputElement, caretPos) {
+  const rect = inputElement.getBoundingClientRect();
+  const span = document.createElement("span");
+  span.textContent = inputElement.value.substring(0, caretPos);
+  document.body.appendChild(span);
+
+  span.style.whiteSpace = "pre-wrap";
+  span.style.visibility = "hidden";
+  span.style.position = "absolute";
+  span.style.top = "0";
+  span.style.left = "0";
+  const spanRect = span.getBoundingClientRect();
+  const x = rect.left + spanRect.width;
+  const y = rect.top + spanRect.height;
+
+  document.body.removeChild(span);
+
+  return { x, y };
+}
 
 function getWordBeforeCursor() {
   const activeElement = document.activeElement;
@@ -25,6 +44,7 @@ function getWordBeforeCursor() {
     const cursorPosition = activeElement.selectionStart;
     const text = activeElement.value || activeElement.textContent;
     const words = text.substring(0, cursorPosition).trim().split(/\s+/);
+    console.log(activeElement, cursorPosition);
     return words[words.length - 1];
   } else if (isContenteditable) {
     const selection = window.getSelection();

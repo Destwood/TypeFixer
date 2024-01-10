@@ -8,22 +8,57 @@ let isMenuActive = false;
 const cursorDiv = document.createElement("div");
 function getCaretCoordinates(inputElement, caretPos) {
   const rect = inputElement.getBoundingClientRect();
-  const span = document.createElement("span");
-  span.textContent = inputElement.value.substring(0, caretPos);
-  document.body.appendChild(span);
+  const div = document.createElement("div");
+  const inputStyle = window.getComputedStyle(inputElement);
 
-  span.style.whiteSpace = "pre-wrap";
-  span.style.visibility = "hidden";
-  span.style.position = "absolute";
-  span.style.top = "0";
-  span.style.left = "0";
-  const spanRect = span.getBoundingClientRect();
-  const x = rect.left + spanRect.width;
-  const y = rect.top + spanRect.height;
+  div.textContent = inputElement.value.substring(0, caretPos);
+  div.style.whiteSpace = "pre-wrap";
+  div.style.visibility = "hidden";
+  div.style.position = "absolute";
+  div.style.top = "0";
+  div.style.left = "0";
+  div.style.width = "auto";
+  div.style.height = "auto";
+  div.style.fontSize = inputStyle.fontSize;
+  div.style.fontFamily = inputStyle.fontFamily;
+  document.body.appendChild(div);
 
-  document.body.removeChild(span);
+  const spanRect = div.getBoundingClientRect();
+  let x = rect.left + spanRect.width;
+  let y = rect.top + spanRect.height;
 
-  return { x, y };
+  if (y > 30) {
+    y -= 55;
+  } else {
+    y = 30;
+  }
+  if (x > 60) {
+    x -= 50;
+  } else {
+    x = 5;
+  }
+
+  document.body.removeChild(div);
+
+  cursorDiv.style.top = y + "px";
+  cursorDiv.style.left = x + "px";
+}
+function getCaretContentEditable(rect) {
+  let x = rect.x;
+  let y = rect.y;
+
+  if (y > 50) {
+    y -= 35;
+  } else {
+    y = 30;
+  }
+  if (x > 75) {
+    x -= 70;
+  } else {
+    x = 5;
+  }
+  cursorDiv.style.top = y + "px";
+  cursorDiv.style.left = x + "px";
 }
 
 function getWordBeforeCursor() {
@@ -40,17 +75,14 @@ function getWordBeforeCursor() {
     const text = activeElement.value || activeElement.textContent;
     const words = text.substring(0, cursorPosition).trim().split(/\s+/);
 
-    cursorDiv.style.top =
-      getCaretCoordinates(activeElement, cursorPosition).y - 60 + "px";
-    cursorDiv.style.left =
-      getCaretCoordinates(activeElement, cursorPosition).x - 70 + "px";
+    getCaretCoordinates(activeElement, cursorPosition);
     return words[words.length - 1];
   } else if (isContenteditable) {
     const selection = window.getSelection();
     const range = selection.getRangeAt(0);
     const rect = range.getBoundingClientRect();
-    cursorDiv.style.top = rect.y - 35 + "px";
-    cursorDiv.style.left = rect.x - 70 + "px";
+    getCaretContentEditable(rect);
+
     const wordsBeforeCursor = range.startContainer.textContent
       .substring(0, range.startOffset)
       .trim()
@@ -61,6 +93,9 @@ function getWordBeforeCursor() {
 }
 function getWordUnderCursor() {
   const activeElement = document.activeElement;
+  if (window.getSelection().toString()) {
+    return null;
+  }
   if (!activeElement) return null;
   const isInputOrTextarea =
     activeElement.tagName === "INPUT" || activeElement.tagName === "TEXTAREA";
@@ -69,10 +104,7 @@ function getWordUnderCursor() {
   if (isInputOrTextarea) {
     const cursorPosition = activeElement.selectionStart;
     const text = activeElement.value || activeElement.textContent;
-    cursorDiv.style.top =
-      getCaretCoordinates(activeElement, cursorPosition).y - 60 + "px";
-    cursorDiv.style.left =
-      getCaretCoordinates(activeElement, cursorPosition).x - 70 + "px";
+    getCaretCoordinates(activeElement, cursorPosition);
     const words = text.split(/\s+/).filter((word) => word !== "");
     let wordStart = 0;
     let wordEnd = 0;
@@ -93,8 +125,7 @@ function getWordUnderCursor() {
     const selection = window.getSelection();
     const range = selection.getRangeAt(0);
     const rect = range.getBoundingClientRect();
-    cursorDiv.style.top = rect.y - 35 + "px";
-    cursorDiv.style.left = rect.x - 70 + "px";
+    getCaretContentEditable(rect);
     const cursorOffset = range.startOffset;
     const cursorNode = range.startContainer;
     const cursorParentNode = cursorNode.parentNode;
@@ -185,27 +216,25 @@ function replaceInputOrTextarea(item, activeElement) {
   const inputString = activeElement.value;
   const beforeCursor = inputString.substring(0, cursorPosition);
   const afterCursor = inputString.substring(cursorPosition);
-  const hasSpaceBefore = /\s$/.test(beforeCursor);
-  const hasSpaceAfter = /^\s/.test(afterCursor);
 
-  const wordsBeforeCursor = beforeCursor
-    .split(/\s/)
-    .filter((word) => word !== "");
-  const wordsAfterCursor = afterCursor
-    .split(/\s/)
-    .filter((word) => word !== "");
+  const wordsBeforeCursor = beforeCursor.trim().split(/\s+/);
+  const wordsAfterCursor = afterCursor.trim().split(/\s+/);
 
-  if (!hasSpaceBefore && !hasSpaceAfter) {
+  const newWords = [];
+  let textWithoutNewLines = "";
+
+  if (wordsBeforeCursor.length > 0) {
     wordsBeforeCursor.pop();
-    wordsAfterCursor.shift();
-  } else if (hasSpaceBefore) {
-    wordsAfterCursor.shift();
-  } else if (hasSpaceAfter) {
-    wordsBeforeCursor.pop();
+    newWords.push(...wordsBeforeCursor);
   }
-  const textWithoutNewLines = `${wordsBeforeCursor.join(
-    " "
-  )} ${item} ${wordsAfterCursor.join(" ")}`;
+
+  newWords.push(item);
+
+  if (wordsAfterCursor.length > 0) {
+    newWords.push(...wordsAfterCursor);
+  }
+
+  textWithoutNewLines = newWords.join(" ");
   const lineBreakPositions = [];
   for (let i = 0; i < inputString.length; i++) {
     if (inputString[i] === "\n") {
@@ -222,7 +251,12 @@ function replaceInputOrTextarea(item, activeElement) {
   }
   activeElement.value = updatedString;
   activeElement.focus();
-  activeElement.setSelectionRange(cursorPosition, cursorPosition);
+
+  const newCursorPosition = newWords
+    .slice(0, newWords.length - wordsAfterCursor.length)
+    .join(" ").length;
+  activeElement.setSelectionRange(newCursorPosition, newCursorPosition);
+
   closeMenu();
 }
 
@@ -260,7 +294,7 @@ function replaceContentEditable(item) {
 
   range.startContainer.textContent = combinedText.join(" ");
 
-  range.setStart(range.startContainer, previousCursorPosition);
+  range.setStart(range.startContainer, wordsBeforeCursor.join(" ").length);
   range.collapse(true);
 
   selection.removeAllRanges();
@@ -293,7 +327,7 @@ const bodyEvents = () => {
   });
 
   document.addEventListener("click", (e) => {
-    console.log("click\n\n\n\n\n");
+    // console.log("click\n\n\n\n\n");
     if (!cursorDiv.contains(e.target)) {
       currentWord = getWordUnderCursor();
       handleEvent();
@@ -302,7 +336,7 @@ const bodyEvents = () => {
 
   let lastKeyPressed = "";
   document.addEventListener("keyup", (event) => {
-    console.log("button pressed\n\n\n\n\n");
+    // console.log("button pressed\n\n\n\n\n");
     if (event.code === "Space") {
       if (lastKeyPressed === "Space") {
         closeMenu();

@@ -13,20 +13,31 @@ let isMenuActive = false;
 const cursorDiv = document.createElement("div");
 function getCaretCoordinates(inputElement, caretPos) {
   const rect = inputElement.getBoundingClientRect();
-  const span = document.createElement("span");
-  span.textContent = inputElement.value.substring(0, caretPos);
-  document.body.appendChild(span);
+  const div = document.createElement("div");
+  div.textContent = inputElement.value.substring(0, caretPos);
+  document.body.appendChild(div);
 
-  span.style.whiteSpace = "pre-wrap";
-  span.style.visibility = "hidden";
-  span.style.position = "absolute";
-  span.style.top = "0";
-  span.style.left = "0";
-  const spanRect = span.getBoundingClientRect();
-  const x = rect.left + spanRect.width;
-  const y = rect.top + spanRect.height;
-
-  document.body.removeChild(span);
+  div.style.whiteSpace = "pre-wrap";
+  div.style.visibility = "hidden";
+  div.style.position = "absolute";
+  div.style.top = "0";
+  div.style.left = "0";
+  const divRect = div.getBoundingClientRect();
+  let x = rect.left + divRect.width;
+  let y = rect.top + divRect.height;
+  console.log(x, y);
+  if (y > 30) {
+    y -= 30;
+  } else {
+    y += 5;
+  }
+  if (x > 55) {
+    x -= 50;
+  } else {
+    x = 5;
+  }
+  console.log(x, y);
+  document.body.removeChild(div);
 
   return { x, y };
 }
@@ -45,10 +56,9 @@ function getWordBeforeCursor() {
     const text = activeElement.value || activeElement.textContent;
     const words = text.substring(0, cursorPosition).trim().split(/\s+/);
 
-    cursorDiv.style.top =
-      getCaretCoordinates(activeElement, cursorPosition).y - 60 + "px";
-    cursorDiv.style.left =
-      getCaretCoordinates(activeElement, cursorPosition).x - 70 + "px";
+    const position = getCaretCoordinates(activeElement, cursorPosition);
+    cursorDiv.style.top = position.y + "px";
+    cursorDiv.style.left = position.x + "px";
     return words[words.length - 1];
   } else if (isContenteditable) {
     const selection = window.getSelection();
@@ -74,10 +84,9 @@ function getWordUnderCursor() {
   if (isInputOrTextarea) {
     const cursorPosition = activeElement.selectionStart;
     const text = activeElement.value || activeElement.textContent;
-    cursorDiv.style.top =
-      getCaretCoordinates(activeElement, cursorPosition).y - 60 + "px";
-    cursorDiv.style.left =
-      getCaretCoordinates(activeElement, cursorPosition).x - 70 + "px";
+    const position = getCaretCoordinates(activeElement, cursorPosition);
+    cursorDiv.style.top = position.y + "px";
+    cursorDiv.style.left = position.x + "px";
     const words = text.split(/\s+/).filter((word) => word !== "");
     let wordStart = 0;
     let wordEnd = 0;

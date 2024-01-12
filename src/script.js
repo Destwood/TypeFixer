@@ -4,6 +4,7 @@ const dictionary = {
   heldp: ["help", "held", "hello"],
 };
 let currentWord = "";
+let currentWordBeforeCursor = false;
 let isMenuActive = false;
 const cursorDiv = document.createElement("div");
 function getCaretCoordinates(inputElement, caretPos) {
@@ -62,6 +63,7 @@ function getCaretContentEditable(rect) {
 }
 
 function getWordBeforeCursor() {
+  currentWordBeforeCursor = true;
   const activeElement = document.activeElement;
   if (!activeElement) return null;
   const isInputText =
@@ -92,9 +94,11 @@ function getWordBeforeCursor() {
   return null;
 }
 function getWordUnderCursor() {
+  currentWordBeforeCursor = false;
   const activeElement = document.activeElement;
   if (window.getSelection().toString()) {
-    return null;
+    console.log("current word = ", window.getSelection().toString());
+    return window.getSelection().toString();
   }
   if (!activeElement) return null;
   const isInputOrTextarea =
@@ -186,7 +190,7 @@ const openMenu = () => {
         if (isInputOrTextarea) {
           replaceInputOrTextarea(item, activeElement);
         } else if (isContenteditable) {
-          replaceContentEditable(item, activeElement);
+          replaceContentEditable(item);
         }
       }
     });
@@ -214,47 +218,32 @@ const closeMenu = () => {
 function replaceInputOrTextarea(item, activeElement) {
   const cursorPosition = activeElement.selectionStart;
   const inputString = activeElement.value;
-  const beforeCursor = inputString.substring(0, cursorPosition);
-  const afterCursor = inputString.substring(cursorPosition);
-
-  const wordsBeforeCursor = beforeCursor.trim().split(/\s+/);
-  const wordsAfterCursor = afterCursor.trim().split(/\s+/);
-
-  const newWords = [];
-  let textWithoutNewLines = "";
-
-  if (wordsBeforeCursor.length > 0) {
-    wordsBeforeCursor.pop();
-    newWords.push(...wordsBeforeCursor);
-  }
-
-  newWords.push(item);
-
-  if (wordsAfterCursor.length > 0) {
-    newWords.push(...wordsAfterCursor);
-  }
-
-  textWithoutNewLines = newWords.join(" ");
-  const lineBreakPositions = [];
-  for (let i = 0; i < inputString.length; i++) {
-    if (inputString[i] === "\n") {
-      lineBreakPositions.push(i);
+  const textBeforeCursor = inputString.substring(0, cursorPosition);
+  const textAfterCursor = inputString.substring(cursorPosition);
+  const spaceBeforeCursor = textBeforeCursor.endsWith(" ");
+  const spaceAfterCursor = textAfterCursor.startsWith(" ");
+  const wordBeforeCursorDeleted = textBeforeCursor.replace(/\S+\s*$/, "");
+  const wordAfterCursorDeleted = textAfterCursor.replace(/^\s*\S+\s*/, "");
+  let newText = "";
+  let newCursorPosition = 0;
+  if (spaceBeforeCursor) {
+    if (currentWordBeforeCursor) {
+      newText = wordBeforeCursorDeleted + `${item} ` + textAfterCursor;
+      newCursorPosition = wordBeforeCursorDeleted.length + item.length;
+    } else {
+      newText = textBeforeCursor + `${item} ` + wordAfterCursorDeleted;
+      newCursorPosition = textBeforeCursor.length + item.length;
     }
+  } else if (spaceAfterCursor) {
+    newText = wordBeforeCursorDeleted + `${item}` + textAfterCursor;
+    newCursorPosition = wordBeforeCursorDeleted.length + item.length;
+  } else {
+    newText = wordBeforeCursorDeleted + `${item} ` + wordAfterCursorDeleted;
+    newCursorPosition = wordBeforeCursorDeleted.length + item.length;
   }
-  let updatedString = "";
-  for (let i = 0; i < textWithoutNewLines.length; i++) {
-    updatedString += textWithoutNewLines[i];
-    if (lineBreakPositions.includes(i + 1)) {
-      updatedString += "\n";
-      i++;
-    }
-  }
-  activeElement.value = updatedString;
+
+  activeElement.value = newText;
   activeElement.focus();
-
-  const newCursorPosition = newWords
-    .slice(0, newWords.length - wordsAfterCursor.length)
-    .join(" ").length;
   activeElement.setSelectionRange(newCursorPosition, newCursorPosition);
 
   closeMenu();
@@ -263,38 +252,39 @@ function replaceInputOrTextarea(item, activeElement) {
 function replaceContentEditable(item) {
   const selection = window.getSelection();
   const range = selection.getRangeAt(0);
-
-  const previousCursorPosition = range.startOffset;
-
+  const cursorPosition = range.startOffset;
   const textBeforeCursor = range.startContainer.textContent.substring(
     0,
-    range.startOffset
+    cursorPosition
   );
-  const textAfterCursor = range.startContainer.textContent.substring(
-    range.startOffset
-  );
+  const textAfterCursor =
+    range.startContainer.textContent.substring(cursorPosition);
+  const spaceBeforeCursor = textBeforeCursor.endsWith(" ");
+  const spaceAfterCursor = textAfterCursor.startsWith(" ");
+  const wordBeforeCursorDeleted = textBeforeCursor.replace(/\S+\s*$/, "");
+  const wordAfterCursorDeleted = textAfterCursor.replace(/^\s*\S+\s*/, "");
+  let newText = "";
+  let newCursorPosition = 0;
 
-  const wordsBeforeCursor = textBeforeCursor.trim().split(/\s+/);
-  const wordsAfterCursor = textAfterCursor.trim().split(/\s+/);
-  const hasSpaceBefore = textBeforeCursor.endsWith(" ");
-  const hasSpaceAfter = textAfterCursor.startsWith(" ");
-
-  if (!hasSpaceBefore && !hasSpaceAfter) {
-    wordsBeforeCursor.pop();
-    wordsAfterCursor.shift();
-  } else if (hasSpaceBefore) {
-    wordsAfterCursor.shift();
-  } else if (hasSpaceAfter) {
-    wordsBeforeCursor.pop();
+  if (spaceBeforeCursor) {
+    if (currentWordBeforeCursor) {
+      newText = wordBeforeCursorDeleted + `${item} ` + textAfterCursor;
+      newCursorPosition = wordBeforeCursorDeleted.length + item.length;
+    } else {
+      newText = textBeforeCursor + `${item} ` + wordAfterCursorDeleted;
+      newCursorPosition = textBeforeCursor.length + item.length;
+    }
+  } else if (spaceAfterCursor) {
+    newText = wordBeforeCursorDeleted + `${item}` + textAfterCursor;
+    newCursorPosition = wordBeforeCursorDeleted.length + item.length;
+  } else {
+    newText = wordBeforeCursorDeleted + `${item} ` + wordAfterCursorDeleted;
+    newCursorPosition = wordBeforeCursorDeleted.length + item.length;
   }
-  wordsBeforeCursor.push(item);
 
-  const combinedText = wordsBeforeCursor.concat(wordsAfterCursor);
-  combinedText[combinedText.length - 1] += " ";
+  range.startContainer.textContent = newText;
 
-  range.startContainer.textContent = combinedText.join(" ");
-
-  range.setStart(range.startContainer, wordsBeforeCursor.join(" ").length);
+  range.setStart(range.startContainer, newCursorPosition);
   range.collapse(true);
 
   selection.removeAllRanges();

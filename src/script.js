@@ -65,7 +65,7 @@ function getCaretContentEditable(rect) {
 function getWordBeforeCursor() {
   currentWordBeforeCursor = true;
   const activeElement = document.activeElement;
-  if (!activeElement) return null;
+  if (!activeElement) return "";
   const isInputText =
     activeElement.tagName === "INPUT" && activeElement.type === "text";
   const isTextarea = activeElement.tagName === "TEXTAREA";
@@ -91,65 +91,71 @@ function getWordBeforeCursor() {
       .split(/\s+/);
     return wordsBeforeCursor[wordsBeforeCursor.length - 1];
   }
-  return null;
+  return "";
 }
 function getWordUnderCursor() {
   currentWordBeforeCursor = false;
   const activeElement = document.activeElement;
   if (window.getSelection().toString()) {
-    console.log("current word = ", window.getSelection().toString());
     return window.getSelection().toString();
   }
-  if (!activeElement) return null;
+  if (!activeElement) return "";
   const isInputOrTextarea =
     activeElement.tagName === "INPUT" || activeElement.tagName === "TEXTAREA";
   const isContenteditable =
     activeElement.getAttribute("contenteditable") === "true";
   if (isInputOrTextarea) {
     const cursorPosition = activeElement.selectionStart;
-    const text = activeElement.value || activeElement.textContent;
+    const inputString = activeElement.value || activeElement.textContent;
     getCaretCoordinates(activeElement, cursorPosition);
-    const words = text.split(/\s+/).filter((word) => word !== "");
-    let wordStart = 0;
-    let wordEnd = 0;
-    const beforeAfterSpaces =
-      text[cursorPosition - 1] === " " && text[cursorPosition] === " ";
-
-    for (let i = 0; i < words.length; i++) {
-      wordEnd = wordStart + words[i].length;
-      if (cursorPosition >= wordStart && cursorPosition <= wordEnd) {
-        if (beforeAfterSpaces) {
-          return null;
-        }
-        return words[i];
-      }
-      wordStart = wordEnd + 1;
+    const textBeforeCursor = inputString.substring(0, cursorPosition);
+    const textAfterCursor = inputString.substring(cursorPosition);
+    const spaceBeforeCursor = textBeforeCursor.endsWith(" ");
+    const spaceAfterCursor = textAfterCursor.startsWith(" ");
+    const wordsBeforeCursor = textBeforeCursor.split(" ");
+    const wordsAfterCursor = textAfterCursor.split(" ");
+    if (spaceBeforeCursor) {
+      return wordsAfterCursor[0];
+    } else if (spaceAfterCursor) {
+      return (
+        wordsBeforeCursor[wordsBeforeCursor.length - 1] + wordsAfterCursor[0]
+      );
+    } else {
+      return (
+        wordsBeforeCursor[wordsBeforeCursor.length - 1] + wordsAfterCursor[0]
+      );
     }
   } else if (isContenteditable) {
     const selection = window.getSelection();
     const range = selection.getRangeAt(0);
     const rect = range.getBoundingClientRect();
     getCaretContentEditable(rect);
-    const cursorOffset = range.startOffset;
-    const cursorNode = range.startContainer;
-    const cursorParentNode = cursorNode.parentNode;
-    const textBeforeCursor = cursorParentNode.textContent.substring(
+    const selectionStart = range.startOffset;
+    const selectionEnd = range.endOffset;
+    const textBeforeCursor = range.startContainer.textContent.substring(
       0,
-      cursorOffset
+      selectionStart
     );
     const textAfterCursor =
-      cursorParentNode.textContent.substring(cursorOffset);
+      range.startContainer.textContent.substring(selectionStart);
+
     const beforeCursorHasSpace = /\s$/.test(textBeforeCursor);
     const afterCursorHasSpace = /^\s/.test(textAfterCursor);
+
     const wordsBeforeCursor = textBeforeCursor.trim().split(/\s+/);
     const wordsAfterCursor = textAfterCursor.trim().split(/\s+/);
-
     const beforeAfterSpaces =
       textBeforeCursor.slice(-1) + textAfterCursor.slice(0, 1);
+    // const selectedWordStart =
+    //   selectionStart - wordsBeforeCursor[wordsBeforeCursor.length - 1].length;
+    // const selectedWordEnd = selectionStart + wordsAfterCursor[0].length - 1;
 
-    if (beforeAfterSpaces === "  ") {
-      return null;
+    // console.log("Selected Word Start:", selectedWordStart);
+    // console.log("Selected Word End:", selectedWordEnd);
+    if (beforeAfterSpaces === "  ") {
+      return "";
     }
+
     if (beforeCursorHasSpace) {
       return wordsAfterCursor[0].toLowerCase();
     } else if (afterCursorHasSpace) {
@@ -161,7 +167,7 @@ function getWordUnderCursor() {
       );
     }
   }
-  return null;
+  return "";
 }
 const openMenu = () => {
   cursorDiv.innerHTML = "";
